@@ -843,7 +843,7 @@ function toast(msg, acao) {
   t.className = 'toast'; t.setAttribute('role', 'status');
   t.append(document.createTextNode(msg));
   if (acao) { const b = document.createElement('button'); b.textContent = acao.rotulo; b.onclick = () => { t.remove(); acao.fn(); }; t.append(b); }
-  document.body.append(t);
+  (document.querySelector('dialog[open]') || document.body).append(t);
   setTimeout(() => t.remove(), acao ? 9000 : 4200);
 }
 function setStatus(id, msg, erro = false) { const el = $(id); if (!el) return; el.textContent = msg || ''; el.classList.toggle('erro', !!erro); }
@@ -1011,7 +1011,7 @@ function msgErro(e) {
     session_expired: 'Sua sessão expirou. Entre novamente no Claude.',
     image_rejected: 'A imagem foi recusada. Tente outra foto.',
     sem_firebase: 'Configure o Firebase no botão do motor de IA para usar o modo de teste.',
-    login_necessario: 'Entre com sua conta Google no botão do motor de IA para usar os testes grátis.',
+    login_necessario: 'Você ainda não entrou. Toque no botão "IA: ..." no topo, role até a caixa "Testes grátis e licença" e toque em "Entrar com Google".',
     sem_testes: 'Seus 2 testes grátis acabaram. Compre a licença, ou configure sua própria chave da API no botão do motor de IA.',
     precisa_licenca: 'Seus 2 testes grátis acabaram. Para usar sua própria chave, é preciso comprar a licença primeiro — botão "Comprar licença" no motor de IA.'
   };
@@ -2496,11 +2496,32 @@ function renderPainelTeste() {
     $('#acoesLicenca').hidden = true;
   }
 }
+function avisoLogin(msg, erro) {
+  const el = $('#testeStatus'); if (!el) return;
+  el.textContent = msg; el.style.color = erro ? 'var(--pen)' : '';
+}
 $('#btLoginTeste').addEventListener('click', async () => {
-  if (!Lote.garantirApp()) return;
-  try { await Lote.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-  catch (e) { toast('Não foi possível entrar: ' + (e.message || e)); }
+  if (!Lote.garantirApp()) { avisoLogin('O Firebase não carregou. Recarregue a página (Ctrl+F5) e confira a internet.', true); return; }
+  avisoLogin('Abrindo a janela do Google...', false);
+  try { await Lote.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); avisoLogin('', false); renderPainelTeste(); }
+  catch (e) {
+    const c = e && e.code;
+    const msgs = {
+      'auth/popup-blocked': 'O navegador bloqueou a janela de login. Clique no ícone de bloqueio na barra de endereço, permita pop-ups para este site e tente de novo.',
+      'auth/popup-closed-by-user': 'A janela do Google foi fechada antes de terminar. Tente de novo e conclua a escolha da conta.',
+      'auth/cancelled-popup-request': 'Já havia uma janela de login aberta. Feche-a e tente de novo.',
+      'auth/unauthorized-domain': 'Este endereço ainda não está autorizado no Firebase (Authentication > Configurações > Domínios autorizados).',
+      'auth/network-request-failed': 'Sem conexão com o Google. Verifique a internet e tente de novo.'
+    };
+    avisoLogin(msgs[c] || ('Não foi possível entrar: ' + ((e && e.message) || e)), true);
+  }
 });
+// ao escolher "Testar com conta Google" sem estar logado, leva o olhar até o botão de entrar
+$$('input[name=modo]').forEach(i => i.addEventListener('change', () => {
+  if (i.value === 'teste' && i.checked && !Lote.user) {
+    const pt = $('#painelTeste'); if (pt && !pt.hidden) { pt.scrollIntoView({ behavior: 'smooth', block: 'center' }); avisoLogin('Toque em "Entrar com Google" logo acima para liberar seus 2 testes grátis.', false); }
+  }
+}));
 $('#btComprarLicenca').addEventListener('click', async () => {
   if (!Lote.functions || !Lote.user) return;
   const bt = $('#btComprarLicenca'); bt.disabled = true; setStatus('#stLic', 'Gerando o link de pagamento...');
