@@ -50,6 +50,7 @@
   --c1:#FF5C68; --c2:#5EA8EE; --c3:#5BC07A; --c4:#F0983F; --c5:#B884E0; color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
 body{margin:0;font-family:var(--font-ui);color:var(--ink);background:var(--bg);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -961,11 +962,12 @@ const IA = {
       if (!this.cfg || !Lote.garantirApp()) throw { code: 'sem_firebase' };
       if (!Lote.user) throw { code: 'login_necessario' };
       try {
-        const r = await Lote.functions.httpsCallable('usarTeste')({ prompt, imagens: imgs, maxTokens });
+        const r = await Lote.functions.httpsCallable('usarTeste', { timeout: 300000 })({ prompt, imagens: imgs, maxTokens });
         texto = r.data.texto;
       } catch (e) {
         if (e && e.code === 'functions/resource-exhausted') throw { code: 'sem_testes' };
         if (e && e.code === 'functions/unauthenticated') throw { code: 'login_necessario' };
+        if (e && e.code === 'functions/deadline-exceeded') throw { code: 'timeout_ia' };
         throw { code: 'upstream_error', message: (e && e.message) || String(e) };
       }
     } else if (modo === 'direto') {
@@ -1010,6 +1012,7 @@ function msgErro(e) {
     cancelled: 'Solicitação interrompida.', AbortError: 'Solicitação interrompida.',
     session_expired: 'Sua sessão expirou. Entre novamente no Claude.',
     image_rejected: 'A imagem foi recusada. Tente outra foto.',
+    timeout_ia: 'A IA demorou mais que o esperado. Tente de novo em instantes; se o teste foi descontado sem resultado, avise o suporte.',
     sem_firebase: 'Configure o Firebase no botão do motor de IA para usar o modo de teste.',
     login_necessario: 'Você ainda não entrou. Toque no botão "IA: ..." no topo, role até a caixa "Testes grátis e licença" e toque em "Entrar com Google".',
     sem_testes: 'Seus 2 testes grátis acabaram. Compre a licença, ou configure sua própria chave da API no botão do motor de IA.',
