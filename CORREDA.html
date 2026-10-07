@@ -18,6 +18,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,750&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -346,6 +348,32 @@ details.colar summary{cursor:pointer;font-size:14px;font-weight:700;margin:14px 
 .prop-texto b{display:block;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#5b6479;margin-bottom:1.4mm}
 .prop-aviso{font-size:7.6pt;color:#8C96AA;font-style:italic;margin-top:1mm}
 .folha-dupla{border:1mm double #172039}
+/* página 2 = sempre uma folha A4 */
+.folha.p2{height:297mm;overflow:hidden;padding-bottom:13mm}
+.p2-in{transform-origin:0 0}
+.folha.p2 .f-comp{padding:1.3mm 0}
+.folha.p2 h3{margin:3.2mm 0 1.8mm}
+.folha.p2 .sub{margin-bottom:2.5mm}
+.folha.p2 .f-reesc .pauta{height:5.6mm}
+.folha.p2 .f-reesc{padding:2.4mm 4mm}
+/* geração de PDF */
+#veuPdf{position:fixed;inset:0;z-index:10000;background:var(--bg);display:grid;place-items:center;text-align:center;font-family:var(--font-ui);color:var(--ink)}
+#veuPdf div{display:grid;gap:8px}#veuPdf b{font-family:var(--font-disp);font-size:22px}#veuPdf span{color:var(--ink-2);font-size:14px}
+#palcoPdf{position:absolute;left:-12000px;top:0;z-index:9999;width:210mm;background:#fff}
+.pdf-modo .folha{box-shadow:none;margin:0 0 0 0}
+.pdf-modo .mk{text-decoration:none!important;text-decoration-line:none!important}
+.pdf-modo .mk-C1{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='3'><path d='M0 1.5 Q1.5 0.1 3 1.5 T6 1.5' fill='none' stroke='%23C1121F' stroke-width='0.8'/></svg>") repeat-x 0 100%;padding-bottom:1px}
+.pdf-modo .folha.pb .mk-C1{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='6' height='3'><path d='M0 1.5 Q1.5 0.1 3 1.5 T6 1.5' fill='none' stroke='%23111' stroke-width='0.8'/></svg>")}
+.pdf-modo .mk-C2{border-bottom:2px dotted var(--c2)}
+.pdf-modo .mk-C4{border-bottom:1.4px dashed var(--c4)}
+.pdf-modo .mk-C5{border-bottom:3px double var(--c5)}
+.pdf-modo .mk.t-elogiar{background:none;border-bottom:1.4px solid var(--ok)}
+.pdf-modo .mk.t-remover{background:linear-gradient(var(--pen),var(--pen)) 0 58%/100% 2px no-repeat;border-bottom:0}
+.hist li.sel{grid-template-columns:auto minmax(0,1fr) auto}
+.hist input[type=checkbox]{width:auto;margin:0 8px 0 0;accent-color:var(--ink)}
+.hist-ferr{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:10px 0}
+.hist-ferr select{width:auto;margin:0;padding:6px 10px}
+
 .f-leg .assin{margin-left:auto;font-size:7.8pt}
 .f-leg .caneta{font-family:var(--font-pen);color:var(--pen);font-size:11pt;font-weight:600}
 .p2 h2{font-size:16pt;margin:0 0 1mm}
@@ -635,7 +663,8 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
 <section class="etapa" data-e="6" aria-labelledby="t6">
   <h2 id="t6" class="sr">Devolutiva para impressão</h2>
   <div class="barra-dev">
-    <button class="btn" type="button" id="btImprimir">Imprimir ou salvar PDF</button>
+    <button class="btn" type="button" id="btPdf">Baixar PDF</button>
+    <button class="btn sec" type="button" id="btImprimir">Imprimir</button>
     <button class="btn sec" type="button" id="btBaixar">Baixar arquivo da devolutiva</button>
     <button class="btn sec" type="button" id="btSalvar">Salvar no histórico</button>
     <label class="corretor">Corretor(a) <input id="professor6" placeholder="Nome de quem corrige"></label>
@@ -822,7 +851,13 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
   <button class="btn sec min fecha" type="button" data-fecha>Fechar</button>
   <h2>Histórico de correções</h2>
   <p class="ajuda" style="margin-bottom:4px">Guardado neste navegador. No modo Apps Script, cada correção salva também vai para a sua planilha.</p>
+  <div class="hist-ferr">
+    <select id="histTurma" class="entrada" aria-label="Filtrar por turma"></select>
+    <label class="miudo" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="histTodas"> Selecionar todas</label>
+    <button class="btn min" type="button" id="btPdfSel">Baixar PDF único das selecionadas</button>
+  </div>
   <ul class="hist" id="listaHist"></ul>
+  <p class="status" id="stHist" role="status"></p>
   <div class="acoes"><button class="btn sec" type="button" id="btCsv">Exportar notas (CSV)</button></div>
 </div></dialog>
 <script>
@@ -1913,12 +1948,11 @@ $('#btCriarAp').addEventListener('click', () => {
    ========================================================= */
 const ELIPSE = '<svg viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true"><path d="M58 6 C 24 2, 3 18, 5 38 C 7 58, 36 67, 62 63 C 88 59, 98 42, 94 24 C 90 9, 70 3, 44 7"/></svg>';
 function linhasSel(v) { return String(v || '').split('\n').map(s => s.replace(/^\s*[-•\d.)]+\s*/, '').trim()).filter(Boolean); }
-function renderDevolutiva() {
+function devolutivaHTML(opts) {
+  opts = opts || {};
   const aceitos = S.aps.filter(a => a.estado === 'aceito');
-  const pend = S.aps.filter(a => a.estado === 'pendente').length;
-  $('#alertaPend').textContent = pend ? `${pend} apontamento(s) pendente(s) ficaram fora da folha.` : '';
   const nums = numeracao(aceitos);
-  const pb = $('#opPB').checked, mostraNota = $('#opNota').checked, p2 = $('#opP2').checked;
+  const pb = !!opts.pb, mostraNota = opts.nota !== false, p2 = opts.p2 !== false;
   const tema = S.proposta.tema || (S.proposta.mapa && S.proposta.mapa.tema) || 'Tema não informado';
   const reg = analisarRegras();
   const margens = n => {
@@ -1930,7 +1964,7 @@ function renderDevolutiva() {
     <header class="f-topo"><div>
       <div class="f-marca">CORREDA<small>Devolutiva de redação</small></div>
       <div class="f-tema"><b>Tema:</b> ${esc(tema)}</div>
-      <div class="f-meta"><span>Turma: ${esc(S.aluno.turma || '______')}</span><span>Estudante: ${esc(S.aluno.codigo || '______')}</span><span>Data: ${hoje()}</span><span>${reg.escritas} linhas escritas</span>${S.anulacao.zerar ? `<span style="color:var(--pen);font-weight:700">Nota zero: ${esc(S.anulacao.motivo)}</span>` : ''}</div>
+      <div class="f-meta"><span>Turma: ${esc(S.aluno.turma || '______')}</span><span>Estudante: ${esc(S.aluno.codigo || '______')}</span><span>Data: ${esc(opts.data || hoje())}</span><span>${reg.escritas} linhas escritas</span>${S.anulacao.zerar ? `<span style="color:var(--pen);font-weight:700">Nota zero: ${esc(S.anulacao.motivo)}</span>` : ''}</div>
       ${S.titulo ? `<div class="f-tema"><b>Título:</b> ${esc(S.titulo)}</div>` : ''}
     </div>${notaHTML}</header>
     <div class="f-linhas">${S.linhas.map((l, i) => `<div class="f-lin"><span class="n">${pad2(i + 1)}</span><span class="tx">${l.p && l.t ? '<span style="display:inline-block;width:5mm"></span>' : ''}${htmlLinha(i + 1, aceitos, nums)}</span><span class="mg">${margens(i + 1)}</span></div>`).join('')}</div>
@@ -1943,6 +1977,7 @@ function renderDevolutiva() {
     const elem = [['agente', 'Agente'], ['acao', 'Ação'], ['meio', 'Modo/meio'], ['finalidade', 'Finalidade'], ['detalhamento', 'Detalhamento']];
     const expl = ordenarAps(aceitos).filter(a => a.expl);
     pag2 = `<article class="folha p2 folha-dupla${pb ? ' pb' : ''}">
+      <div class="p2-in">
       <h2>Seu desempenho</h2>
       ${S.bancas ? `<div class="sub">Nota calculada pela média de ${S.bancas.terceiro ? 'duas de três' : 'duas'} correções independentes, no critério do Inep, e revisada pelo(a) professor(a).</div>` : ''}
       <div class="sub">Estudante ${esc(S.aluno.codigo || '')} ${esc(S.aluno.turma)} · ${esc(tema)}${S.professor ? ' · Corrigido por ' + esc(S.professor) : ''}</div>
@@ -1954,22 +1989,53 @@ function renderDevolutiva() {
         <div><h3>Pontos fortes</h3><ul class="f-lista">${linhasSel(S.extras.fortes).map(x => `<li>${esc(x)}</li>`).join('') || '<li>-</li>'}</ul></div>
         <div><h3>Prioridades para a próxima redação</h3><ol class="f-lista">${linhasSel(S.extras.prior).map(x => `<li>${esc(x)}</li>`).join('') || '<li>-</li>'}</ol></div>
       </div>
-      ${S.extras.reesc ? `<h3>Tarefa de reescrita</h3><div class="f-reesc"><p>${esc(S.extras.reesc)}</p>${'<div class="pauta"></div>'.repeat(6)}</div>` : ''}
-      <div class="f-by">CORREDA</div>
+      ${S.extras.reesc ? `<h3>Tarefa de reescrita</h3><div class="f-reesc"><p>${esc(S.extras.reesc)}</p>${'<div class="pauta"></div>'.repeat(4)}</div>` : ''}
       ${expl.length ? `<h3>Entenda cada marcação</h3><div class="f-expl">${expl.map(a => `<p><span class="num${a.tipo === 'elogiar' ? ' ok' : ''}">${nums.get(a.id)}</span><b>${esc(a.categoria)}.</b> ${esc(a.expl)}</p>`).join('')}</div>` : ''}
+      </div>
+      <div class="f-by">CORREDA</div>
     </article>`;
   }
-  const alvo = $('#impressao');
-  alvo.innerHTML = p1 + pag2;
-  ajustarFolha(alvo);
+  return p1 + pag2;
 }
+function renderDevolutiva() {
+  const pend = S.aps.filter(a => a.estado === 'pendente').length;
+  $('#alertaPend').textContent = pend ? `${pend} apontamento(s) pendente(s) ficaram fora da folha.` : '';
+  const alvo = $('#impressao');
+  alvo.innerHTML = devolutivaHTML({ pb: $('#opPB').checked, nota: $('#opNota').checked, p2: $('#opP2').checked });
+  ajustarFolha(alvo); ajustarP2(alvo);
+}
+
 function ajustarFolha(raiz) {
-  const f = $('.folha.p1', raiz); if (!f) return;
   const est = document.createElement('style'); est.textContent = '.medindo .acima,.medindo .ins .acima{display:none!important}';
-  document.head.append(est); f.classList.add('medindo');
-  $$('.f-lin .tx', f).forEach(tx => { let fs = 10.5; tx.style.fontSize = ''; while (tx.scrollWidth > tx.clientWidth + 1 && fs > 7.25) { fs -= 0.25; tx.style.fontSize = fs + 'pt'; } });
-  f.classList.remove('medindo'); est.remove();
-  $$('.f-lin .mg', f).forEach(mg => { mg.classList.remove('aperta'); if (mg.scrollHeight > mg.clientHeight + 1) mg.classList.add('aperta'); });
+  document.head.append(est);
+  $$('.folha.p1', raiz).forEach(f => {
+    f.classList.add('medindo');
+    $$('.f-lin .tx', f).forEach(tx => { let fs = 10.5; tx.style.fontSize = ''; while (tx.scrollWidth > tx.clientWidth + 1 && fs > 7.25) { fs -= 0.25; tx.style.fontSize = fs + 'pt'; } });
+    f.classList.remove('medindo');
+    $$('.f-lin .mg', f).forEach(mg => { mg.classList.remove('aperta'); if (mg.scrollHeight > mg.clientHeight + 1) mg.classList.add('aperta'); });
+  });
+  est.remove();
+}
+/* A página 2 SEMPRE cabe numa única folha A4: primeiro reduz a escala (até 74%);
+   se ainda não couber, tira linhas de pauta e, por último, as explicações finais. */
+function ajustarP2(raiz) {
+  $$('.folha.p2', raiz).forEach(f => {
+    const inn = $('.p2-in', f); if (!inn) return;
+    const cs = getComputedStyle(f);
+    const disp = f.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 2;
+    let z = 1;
+    const aplicar = () => { inn.style.transformOrigin = '0 0'; inn.style.width = (100 / z) + '%'; inn.style.transform = z < 1 ? `scale(${z})` : ''; };
+    const tenta = () => { z = 1; aplicar(); while (inn.scrollHeight * z > disp && z > 0.74) { z = Math.max(0.74, +(z - 0.02).toFixed(2)); aplicar(); } return inn.scrollHeight * z <= disp; };
+    let ok = tenta();
+    while (!ok) {
+      const pautas = $$('.pauta', inn), exps = $$('.f-expl p', inn);
+      if (pautas.length > 2) pautas[pautas.length - 1].remove();
+      else if (exps.length > 4) exps[exps.length - 1].remove();
+      else break;
+      ok = tenta();
+    }
+    f.dataset.escala = z;
+  });
 }
 ['#opP2', '#opNota', '#opPB'].forEach(id => $(id).addEventListener('change', renderDevolutiva));
 document.fonts && document.fonts.ready.then(() => { if (S.etapa === 6) renderDevolutiva(); });
@@ -2277,15 +2343,98 @@ $('#btSalvar').addEventListener('click', async () => {
   toast('Correção salva no histórico' + extra + '.', { rotulo: 'Próxima redação', fn: novaCorrecao });
 });
 function renderHist() {
-  const h = LS.get('historico', []);
-  $('#listaHist').innerHTML = h.length ? h.map(x => `<li><div><b>${x.total}</b> ${esc(x.codigo || 'sem código')} ${esc(x.turma || '')}<br><span class="miudo">${esc(x.data)} ${esc(x.tema || '')}</span></div><div>${x.estado ? `<button class="btn sec min" data-abrir="${x.id}">Abrir</button>` : ''} <button class="btn sec min" data-apagar="${x.id}">Apagar</button></div></li>`).join('') : '<li><span class="miudo">Nenhuma correção salva ainda.</span></li>';
+  const todos = LS.get('historico', []);
+  const turmas = [...new Set(todos.map(x => x.turma || '').filter(Boolean))].sort();
+  const sel = $('#histTurma'), atual = sel.value;
+  sel.innerHTML = '<option value="">Todas as turmas</option>' + turmas.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  sel.value = turmas.includes(atual) ? atual : '';
+  const h = todos.filter(x => !sel.value || (x.turma || '') === sel.value);
+  $('#histTodas').checked = false;
+  $('#listaHist').innerHTML = h.length ? h.map(x => `<li class="sel"><input type="checkbox" data-sel="${x.id}" ${x.estado ? '' : 'disabled'} aria-label="Selecionar ${esc(x.codigo || 'redação')}"><div><b>${x.total}</b> ${esc(x.codigo || 'sem código')} ${esc(x.turma || '')}<br><span class="miudo">${esc(x.data)} ${esc(x.tema || '')}</span></div><div>${x.estado ? `<button class="btn sec min" data-abrir="${x.id}">Abrir</button> <button class="btn sec min" data-pdf="${x.id}">PDF</button>` : ''} <button class="btn sec min" data-apagar="${x.id}">Apagar</button></div></li>`).join('') : '<li><span class="miudo">Nenhuma correção salva ainda.</span></li>';
 }
-$('#btHist').addEventListener('click', () => { renderHist(); $('#dlgHist').showModal(); });
-$('#listaHist').addEventListener('click', e => {
-  const ab = e.target.closest('[data-abrir]'), ap = e.target.closest('[data-apagar]');
+$('#btHist').addEventListener('click', () => { setStatus('#stHist', ''); renderHist(); $('#dlgHist').showModal(); });
+$('#histTurma').addEventListener('change', renderHist);
+$('#histTodas').addEventListener('change', e => $$('#listaHist input[data-sel]:not(:disabled)').forEach(c => c.checked = e.target.checked));
+$('#listaHist').addEventListener('click', async e => {
+  const ab = e.target.closest('[data-abrir]'), ap = e.target.closest('[data-apagar]'), pd = e.target.closest('[data-pdf]');
   const h = LS.get('historico', []);
   if (ab) { const x = h.find(i => String(i.id) === ab.dataset.abrir); if (x && x.estado) { S = { ...estadoInicial(), ...x.estado }; if (!S.professor) S.professor = LS.get('professor', ''); preencherCampos(); $('#dlgHist').close(); irPara(6); } }
   if (ap) { LS.set('historico', h.filter(i => String(i.id) !== ap.dataset.apagar)); renderHist(); }
+  if (pd) { const x = h.find(i => String(i.id) === pd.dataset.pdf); if (x) await gerarPdfDoHistorico([x], pd); }
+});
+$('#btPdfSel').addEventListener('click', async () => {
+  const ids = $$('#listaHist input[data-sel]:checked').map(c => c.dataset.sel);
+  if (!ids.length) { setStatus('#stHist', 'Marque ao menos uma redação (ou "Selecionar todas").', true); return; }
+  const h = LS.get('historico', []).filter(x => ids.includes(String(x.id)));
+  await gerarPdfDoHistorico(h, $('#btPdfSel'));
+});
+
+/* =========================================================
+   PDF: uma redação ou o lote completo, num único arquivo
+   (cada página é fotografada do próprio layout da folha impressa)
+   ========================================================= */
+const nomeSeguro = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[ªº]/g, '').replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'redacao';
+function baixarBlob(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = nome; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function devolutivaDoHistorico(x) {
+  const salvo = S;
+  try {
+    S = { ...estadoInicial(), ...x.estado };
+    if (!S.professor) S.professor = LS.get('professor', '');
+    return devolutivaHTML({ pb: false, nota: true, p2: true, data: x.data });
+  } finally { S = salvo; }
+}
+async function htmlParaPDF(htmlFolhas, nomeArquivo) {
+  if (typeof html2canvas === 'undefined' || !window.jspdf || !window.jspdf.jsPDF) throw new Error('As bibliotecas de PDF não carregaram. Confira a internet e recarregue a página (Ctrl+F5).');
+  const veu = document.createElement('div'); veu.id = 'veuPdf'; veu.innerHTML = '<div><b id="veuTxt">Preparando o PDF...</b><span>Não feche nem troque de aba até terminar.</span></div>';
+  const palco = document.createElement('div'); palco.id = 'palcoPdf'; palco.className = 'pdf-modo vitrine'; palco.innerHTML = htmlFolhas;
+  document.body.append(palco, veu);
+  try {
+    window.scrollTo(0, 0);
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await pausa(80);
+    ajustarFolha(palco); ajustarP2(palco);
+    const folhas = $$('.folha', palco), txt = $('#veuTxt');
+    const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+    for (let i = 0; i < folhas.length; i++) {
+      txt.textContent = `Gerando página ${i + 1} de ${folhas.length}...`;
+      await pausa(30);
+      const c = await html2canvas(folhas[i], { scale: 1.7, backgroundColor: '#ffffff', useCORS: true, logging: false, windowWidth: 1200 });
+      if (i > 0) pdf.addPage();
+      pdf.addImage(c.toDataURL('image/jpeg', 0.86), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      c.width = c.height = 0;
+    }
+    window.__ultimoPdf = pdf.output('blob');
+    baixarBlob(window.__ultimoPdf, nomeArquivo);
+    setTimeout(() => { window.__ultimoPdf = null; }, 20000);
+    return folhas.length;
+  } finally { palco.remove(); veu.remove(); }
+}
+async function gerarPdfDoHistorico(itens, botao) {
+  const validos = itens.filter(x => x.estado).sort((a, b) => String(a.codigo || '').localeCompare(String(b.codigo || ''), 'pt-BR', { numeric: true }));
+  if (!validos.length) { setStatus('#stHist', 'Essas correções não têm dados completos para gerar o PDF.', true); return; }
+  if (botao) botao.disabled = true;
+  setStatus('#stHist', `Gerando PDF de ${validos.length} redação(ões)... isso pode levar alguns instantes.`);
+  try {
+    const html = validos.map(devolutivaDoHistorico).join('');
+    const turma = validos[0].turma || '', turmaUnica = validos.every(x => (x.turma || '') === turma);
+    const nome = validos.length === 1 ? `devolutiva-${nomeSeguro(validos[0].codigo)}.pdf` : `devolutivas-${nomeSeguro(turmaUnica ? turma : 'lote')}-${validos.length}-redacoes.pdf`;
+    const pags = await htmlParaPDF(html, nome);
+    setStatus('#stHist', `PDF pronto: ${pags} página(s), arquivo "${nome}".`);
+  } catch (e) { setStatus('#stHist', 'Não foi possível gerar o PDF: ' + (e.message || e), true); }
+  finally { if (botao) botao.disabled = false; }
+}
+$('#btPdf').addEventListener('click', async () => {
+  const bt = $('#btPdf'); bt.disabled = true;
+  try {
+    const html = devolutivaHTML({ pb: $('#opPB').checked, nota: $('#opNota').checked, p2: $('#opP2').checked });
+    await htmlParaPDF(html, `devolutiva-${nomeSeguro(S.aluno.codigo)}.pdf`);
+    toast('PDF baixado.');
+  } catch (e) { toast('Não foi possível gerar o PDF: ' + (e.message || e)); }
+  finally { bt.disabled = false; }
 });
 $('#btCsv').addEventListener('click', () => {
   const h = LS.get('historico', []);
