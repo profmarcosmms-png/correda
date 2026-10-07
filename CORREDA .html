@@ -418,6 +418,15 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
 .lt-badge{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--surface-2);white-space:nowrap}
 .lt-badge.erro{background:var(--pen-soft);color:var(--pen)}
 .lt-badge.lida{background:var(--surface-2);color:var(--ok);font-weight:700}
+.ll-item{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.ll-item img{width:34px;height:44px;object-fit:cover;border-radius:4px;border:1px solid var(--line);background:var(--surface-2)}
+.ll-item input.cod{margin:0;padding:5px 8px;font-size:13px;width:100%;max-width:150px}
+.ll-item .linha2{grid-column:2 / 4;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.ll-item .acoes-item{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.ll-badge{font-size:12px;padding:2px 9px;border-radius:999px;background:var(--surface-2);white-space:nowrap}
+.ll-badge.ok{background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ok);font-weight:700}
+.ll-badge.aviso{background:color-mix(in srgb,var(--warn) 16%,var(--surface));color:var(--warn);font-weight:700}
+.ll-badge.erro{background:var(--pen-soft);color:var(--pen)}
 .pp-item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}
 .pp-item .topo-pp{display:flex;gap:8px;align-items:center;margin-bottom:6px}
 .pp-item input{margin:0;flex:1;padding:6px 9px;font-size:13.5px;font-weight:700}
@@ -448,6 +457,7 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
   </div>
   <div class="dir">
     <button class="chip-motor" id="chipMotor" type="button" title="Configurar o motor de IA"><i></i><span>Verificando IA</span></button>
+    <button class="btn sec min" type="button" id="btLoteLocal">Lote da turma</button>
     <button class="btn sec min" type="button" id="btLote">Lote (nuvem)</button>
     <button class="btn sec min" type="button" id="btHist">Histórico</button>
     <button class="btn sec min" type="button" id="btNova">Nova correção</button>
@@ -682,39 +692,50 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
 <dialog id="dlgMotor"><div class="dlg">
   <button class="btn sec min fecha" type="button" data-fecha>Fechar</button>
   <h2>Motor de IA</h2>
-  <p class="ajuda" style="margin-bottom:6px">Escolha como o CORREDA conversa com a IA.</p>
-  <div class="modos">
-    <label class="opcao"><input type="radio" name="modo" value="auto"><div><b>Automático</b><span>Usa o Claude quando o app está aberto no Claude; senão, os testes grátis; senão, o Apps Script configurado.</span></div></label>
-    <label class="opcao"><input type="radio" name="modo" value="claude"><div><b>Claude (neste app publicado)</b><span>Usa a sua conta Claude, com o seu consentimento na primeira correção. Não precisa de chave.</span></div></label>
-    <label class="opcao"><input type="radio" name="modo" value="teste"><div><b>Testar com conta Google</b><span>2 correções grátis, sem precisar de chave. Depois, é preciso licença ou sua própria chave.</span></div></label>
-    <label class="opcao"><input type="radio" name="modo" value="appsscript"><div><b>Google Apps Script</b><span>Para a versão no GitHub Pages. A chave da API fica guardada no Apps Script, nunca no HTML.</span></div></label>
-    <label class="opcao"><input type="radio" name="modo" value="direto"><div><b>Sua chave da API</b><span>A chave fica só neste navegador. Exige licença ativa depois dos 2 testes grátis — veja abaixo como conseguir uma.</span></div></label>
-    <label class="opcao"><input type="radio" name="modo" value="demo"><div><b>Demonstração</b><span>Percorre o fluxo com uma redação de exemplo já corrigida, sem gastar nada.</span></div></label>
-  </div>
+  <p class="ajuda" style="margin-bottom:10px">A CORREDA usa inteligência artificial para ler e corrigir as redações. Veja como liberar o uso:</p>
 
-  <div id="painelTeste" style="margin:14px 0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)">
-    <h3 style="margin:0 0 6px">Testes grátis e licença</h3>
-    <div id="testeAuth"><div class="acoes" style="margin:0"><button class="btn sec" type="button" id="btLoginTeste">Entrar com Google</button></div></div>
+  <div id="painelTeste" style="margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)">
+    <h3 style="margin:0 0 4px">1. Testar de graça e comprar a licença</h3>
+    <p class="miudo" style="margin:0 0 8px">Entre com sua conta Google e faça 2 correções grátis. Para continuar depois disso, compre a licença.</p>
+    <div id="testeAuth"><div class="acoes" style="margin:0"><button class="btn" type="button" id="btLoginTeste">Entrar com Google</button></div></div>
     <div id="testeConta" class="acoes" style="margin:8px 0 0" hidden><button class="btn sec min" type="button" id="btTrocarConta">Trocar de conta</button><button class="btn sec min" type="button" id="btSairTeste">Sair</button></div>
     <div id="testeStatus" class="miudo" style="margin-top:6px"></div>
     <div class="acoes" id="acoesLicenca" style="margin-top:8px" hidden><button class="btn" type="button" id="btComprarLicenca">Comprar licença</button><span class="status" id="stLic"></span></div>
   </div>
 
-  <label class="campo">URL do Apps Script (termina em /exec)<input id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec"></label>
-  <label class="campo">Código de acesso do Apps Script<input id="cfgToken" placeholder="o mesmo definido em CORREDA_TOKEN"></label>
-  <label class="campo">Chave da API (modo "sua chave")<input id="cfgChave" type="password" placeholder="sk-ant-..."></label>
-  <label class="campo">Modelo (modos Apps Script e chave direta)<input id="cfgModelo" placeholder="claude-sonnet-5"></label>
-  <div class="acoes"><button class="btn" type="button" id="btSalvarCfg">Salvar</button><span class="status" id="stCfg"></span></div>
+  <div style="margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px">
+    <h3 style="margin:0 0 4px">2. Usar sua própria chave da API</h3>
+    <p class="miudo" style="margin:0 0 8px">Depois da licença, a CORREDA usa uma chave sua. A Anthropic cobra direto no seu cartão só o que você usar (poucos centavos por redação).</p>
+    <label class="campo" style="margin-bottom:8px">Chave da API<input id="cfgChave" type="password" placeholder="sk-ant-..." autocomplete="off"></label>
+    <div class="acoes" style="margin:0"><button class="btn" type="button" id="btSalvarCfg">Salvar chave</button><span class="status" id="stCfg"></span></div>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;font-weight:700;font-size:14px">Como conseguir minha chave</summary>
+      <ol style="font-size:13.5px;line-height:1.6;color:var(--ink-2);padding-left:20px;margin:8px 0 0">
+        <li>Acesse <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a> e crie uma conta, se ainda não tiver.</li>
+        <li>Em "Billing", cadastre um cartão e coloque um crédito inicial (R$ 20 já rende muitas correções).</li>
+        <li>Em "API Keys", toque em "Create Key" e copie o valor que começa com <code>sk-ant-</code>.</li>
+        <li>Cole no campo acima e toque em "Salvar chave". O app passa a usá-la sozinho.</li>
+      </ol>
+      <p class="miudo" style="margin-top:8px">A chave fica guardada só neste aparelho e nunca é enviada para o nosso servidor.</p>
+    </details>
+  </div>
 
-  <details style="margin-top:14px">
-    <summary style="cursor:pointer;font-weight:700;font-size:14px">Como conseguir sua própria chave da API</summary>
-    <ol style="font-size:13.5px;line-height:1.6;color:var(--ink-2);padding-left:20px;margin:8px 0 0">
-      <li>Acesse <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a> e crie uma conta, se ainda não tiver.</li>
-      <li>Em "Billing", cadastre um cartão e coloque um crédito inicial (R$ 20 já rende muitas correções).</li>
-      <li>Em "API Keys", clique em "Create Key" e copie o valor que começa com <code>sk-ant-</code>.</li>
-      <li>Cole essa chave no campo "Chave da API" acima e escolha o modo "Sua chave da API".</li>
-    </ol>
-    <p class="miudo" style="margin-top:8px">A chave fica guardada só neste navegador (nunca é enviada para nenhum servidor nosso) e o que você gastar é cobrado direto pela Anthropic no seu cartão, sem intermediário.</p>
+  <details id="avancado">
+    <summary style="cursor:pointer;font-weight:700;font-size:14px">Opções avançadas (a maioria das pessoas não precisa)</summary>
+    <p class="miudo" style="margin:8px 0">Por padrão o app escolhe sozinho a melhor opção. Só mude aqui se souber o que é.</p>
+    <div class="modos">
+      <label class="opcao"><input type="radio" name="modo" value="auto"><div><b>Automático (recomendado)</b><span>O app escolhe sozinho: sua chave, depois os testes grátis, depois o servidor próprio, se houver.</span></div></label>
+      <label class="opcao"><input type="radio" name="modo" value="claude"><div><b>Conta Claude (só dentro do Claude)</b><span>Só funciona quando o app é aberto dentro do próprio site ou app do Claude, usando a conta Claude de quem abriu. No app instalado ou no endereço do GitHub, ignore esta opção.</span></div></label>
+      <label class="opcao"><input type="radio" name="modo" value="teste"><div><b>Testes grátis (conta Google)</b><span>Usa só as 2 correções grátis, pelo servidor da CORREDA.</span></div></label>
+      <label class="opcao"><input type="radio" name="modo" value="direto"><div><b>Minha chave da API</b><span>Usa a chave do campo 2. Exige licença ativa.</span></div></label>
+      <label class="opcao"><input type="radio" name="modo" value="appsscript"><div><b>Servidor próprio (Apps Script)</b><span>Para escolas com suporte técnico que montaram o próprio servidor no Google. Se você não sabe o que é, ignore.</span></div></label>
+      <label class="opcao"><input type="radio" name="modo" value="demo"><div><b>Demonstração</b><span>Mostra o app funcionando com uma redação de exemplo, sem gastar nada.</span></div></label>
+    </div>
+    <label class="campo">URL do servidor próprio (Apps Script, termina em /exec)<input id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec"></label>
+    <label class="campo">Código de acesso do servidor próprio<input id="cfgToken" placeholder="o mesmo definido em CORREDA_TOKEN"></label>
+    <label class="campo">Modelo de IA<input id="cfgModelo" placeholder="claude-sonnet-5"></label>
+    <div class="acoes"><button class="btn" type="button" id="btSalvarCfg2">Salvar opções</button><span class="status" id="stCfg2"></span></div>
+    <p class="miudo" id="stClaude" style="margin-top:8px"></p>
   </details>
 </div></dialog>
 
@@ -801,13 +822,15 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
 <dialog id="dlgLote"><div class="dlg" style="width:min(680px,95vw)">
   <button class="btn sec min fecha" type="button" data-fecha>Fechar</button>
   <h2>Correção em lote (nuvem)</h2>
-  <p class="ajuda">Envie várias fotos de uma vez. A leitura de cada uma roda em segundo plano, em paralelo; você corrige cada redação assim que ela ficar pronta. Exige um projeto Firebase configurado (veja o guia junto do backend).</p>
-  <div id="loteConfig">
-    <label class="campo">Configuração do Firebase <span class="miudo">(cole o objeto firebaseConfig do seu projeto)</span>
+  <p class="ajuda">Envie as fotos da turma de uma vez. A leitura de cada redação roda em segundo plano, e você corrige cada uma assim que ela ficar pronta, sem esperar uma por uma. Cada redação lida consome 1 crédito.</p>
+  <details id="loteConfig">
+    <summary style="cursor:pointer;font-weight:700;font-size:14px;margin-bottom:8px">Configuração do servidor (avançado)</summary>
+    <p class="miudo" style="margin:0 0 8px">Já vem preenchida com o servidor da CORREDA. Só mude se você montou o seu próprio Firebase.</p>
+    <label class="campo">Configuração do Firebase <span class="miudo">(objeto firebaseConfig)</span>
       <textarea id="fbConfig" rows="5" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
     </label>
     <div class="acoes"><button class="btn sec" type="button" id="btSalvarFb">Salvar configuração</button><span class="status" id="stFb"></span></div>
-  </div>
+  </details>
   <div id="loteAuth" hidden style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
     <div class="acoes" style="margin-top:0"><button class="btn" type="button" id="btLoginGoogle">Entrar com Google</button><span id="loteUsuario" class="miudo"></span><button class="btn sec min" type="button" id="btLogoutGoogle" style="margin-left:auto">Sair</button></div>
     <div class="acoes" id="painelCreditos" style="margin-top:8px" hidden>
@@ -846,6 +869,27 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
     <label class="opcao"><input type="radio" name="pacote" value="p300"><div><b>300 créditos</b><span>R$ 89,90</span></div></label>
   </div>
   <div class="acoes"><button class="btn" type="button" id="btIrPagar">Ir para o pagamento</button><span class="status" id="stCred"></span></div>
+</div></dialog>
+
+<dialog id="dlgLoteLocal"><div class="dlg" style="width:min(720px,95vw)">
+  <button class="btn sec min fecha" type="button" data-fecha>Fechar</button>
+  <h2>Lote da turma</h2>
+  <p class="ajuda" style="margin-bottom:8px">Envie as fotos de várias redações de uma vez. O app lê e corrige uma por uma, em segundo plano, e você revisa cada uma depois. <b>O custo vai para a sua chave da API</b> e as fotos ficam só neste aparelho.</p>
+  <div class="linha-campos">
+    <label class="campo">Turma<input id="llTurma" placeholder="3ª B"></label>
+    <label class="campo">Prefixo do código <span class="miudo">(gera 3B-01, 3B-02...)</span><input id="llPrefixo" placeholder="3B"></label>
+  </div>
+  <label class="campo">Tema <span class="miudo">(usa o da etapa 1, se vazio)</span><input id="llTema" placeholder="Tema da redação"></label>
+  <label class="campo" style="display:flex;gap:8px;align-items:flex-start;font-weight:400"><input type="checkbox" id="llAuto" checked style="width:auto;margin-top:4px"> <span>Corrigir automaticamente depois de ler (correção única). Redações com palavras ilegíveis param para você conferir antes.</span></label>
+  <label class="drop"><input type="file" id="llFotos" accept="image/*" multiple><strong>Escolher as fotos da turma</strong><span class="miudo">Selecione várias de uma vez. Cada foto deve mostrar a folha inteira.</span></label>
+  <div id="llLista" style="margin-top:10px"></div>
+  <p class="status" id="llStatus" role="status"></p>
+  <div class="acoes">
+    <button class="btn" type="button" id="btLLProcessar">Processar</button>
+    <button class="btn sec" type="button" id="btLLParar" hidden>Parar</button>
+    <button class="btn sec min direita" type="button" id="btLLLimpar">Limpar lote</button>
+  </div>
+  <p class="miudo" style="margin-top:10px">Custo aproximado na sua conta Anthropic: cerca de R$ 0,40 por redação lida e corrigida (varia com o câmbio e o tamanho do texto). A correção dupla não entra no lote, para não multiplicar o custo.</p>
 </div></dialog>
 
 <dialog id="dlgHist"><div class="dlg">
@@ -957,9 +1001,11 @@ const IA = {
   },
   modo() {
     const m = this.cfg.modo;
+    if (m === 'teste' && this.licenciado && this.cfg.chave) return 'direto';   // licenciado com chave: não faz mais sentido ficar nos testes
     if (m && m !== 'auto') return m;
     if (this.sample) return 'claude';
     if (this.cfg.url) return 'appsscript';
+    if (this.cfg.chave && (this.licenciado || !Lote.cfg)) return 'direto';
     if (Lote.cfg) return 'teste';
     return 'demo';
   },
@@ -1011,12 +1057,18 @@ const IA = {
       if (!this.cfg.chave) throw { code: 'sem_chave' };
       const content = imgs.map(i => ({ type: 'image', source: { type: 'base64', media_type: i.media_type, data: i.data } }));
       content.push({ type: 'text', text: prompt });
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', signal: this.ctl.signal,
-        headers: { 'content-type': 'application/json', 'x-api-key': this.cfg.chave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: this.cfg.modelo || 'claude-sonnet-5', max_tokens: maxTokens, messages: [{ role: 'user', content }] })
-      });
-      const d = await r.json();
+      let r, d;
+      for (let t = 0; t < 4; t++) {
+        r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST', signal: this.ctl.signal,
+          headers: { 'content-type': 'application/json', 'x-api-key': this.cfg.chave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+          body: JSON.stringify({ model: this.cfg.modelo || 'claude-sonnet-5', max_tokens: maxTokens, messages: [{ role: 'user', content }] })
+        });
+        d = await r.json();
+        if (!d.error || ![429, 500, 502, 503, 529].includes(r.status) || t === 3) break;
+        const espera = Math.min(30, Number(r.headers.get('retry-after')) || (2 ** t) * 3);   // respeita o pedido de espera da API
+        await pausa(espera * 1000);
+      }
       if (d.error) throw { code: 'upstream_error', message: d.error.message };
       texto = (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
     }
@@ -1034,6 +1086,7 @@ function extrairJSON(t) {
 }
 function msgErro(e) {
   const c = e && (e.code || e.name);
+  if (c === 'sem_testes' && IA.licenciado) return 'Os testes grátis acabaram, mas sua licença está ativa. Abra o botão do motor de IA, cole sua chave da API no campo 2 e toque em Salvar chave.';
   const m = {
     demo: 'O app está em modo demonstração. Configure o motor de IA no botão do topo, ou use a redação de exemplo.',
     sem_claude: 'O Claude não está disponível nesta página. Configure o Apps Script no botão do topo.',
@@ -1051,8 +1104,8 @@ function msgErro(e) {
     timeout_ia: 'A IA demorou mais que o esperado. Tente de novo em instantes; se o teste foi descontado sem resultado, avise o suporte.',
     sem_firebase: 'Configure o Firebase no botão do motor de IA para usar o modo de teste.',
     login_necessario: 'Você ainda não entrou. Toque no botão "IA: ..." no topo, role até a caixa "Testes grátis e licença" e toque em "Entrar com Google".',
-    sem_testes: 'Seus 2 testes grátis acabaram. Compre a licença, ou configure sua própria chave da API no botão do motor de IA.',
-    precisa_licenca: 'Seus 2 testes grátis acabaram. Para usar sua própria chave, é preciso comprar a licença primeiro — botão "Comprar licença" no motor de IA.'
+    sem_testes: 'Seus 2 testes grátis acabaram. Para continuar, abra o botão do motor de IA, compre a licença e depois cole sua chave da API.',
+    precisa_licenca: 'Para usar sua própria chave é preciso ter a licença ativa. Abra o botão do motor de IA e toque em "Comprar licença".'
   };
   if (m[c]) return m[c];
   if (e && e.message && /Failed to fetch|NetworkError|Load failed/i.test(e.message)) return 'Sem conexão com o serviço de IA. Verifique a internet e a URL configurada.';
@@ -1373,6 +1426,7 @@ function definirFoto(dataURL, w, h, cantos) {
 function renderRecorte() {
   const P = $('#palcoFoto');
   if (!S.foto || !S.foto.original) { $('#ctrlFoto').hidden = true; return; }
+  if (!S.foto.cantos) S.foto.cantos = cantosPadrao(S.foto.w || 1, S.foto.h || 1);
   $('#ctrlFoto').hidden = false;
   const { w, h } = S.foto, r = Math.max(w, h) * 0.016;
   P.innerHTML = `<div class="recorte" id="recorte"><img src="${S.foto.original}" alt="Foto da folha de redação" draggable="false">
@@ -1772,7 +1826,7 @@ $('#btCorrigir').addEventListener('click', async () => {
         for (const f of ['Lendo a norma padrão', 'Conferindo tema e repertório', 'Seguindo a argumentação', 'Medindo a coesão', 'Contando os elementos da intervenção']) { if (id !== 2) $('#trabDet').textContent = (id ? `Corretor ${id}: ` : '') + f + '...'; await pausa(450); }
         return JSON.parse(JSON.stringify(id === 2 ? DEMO.correcao2 : DEMO.correcao));
       }
-      return IA.json({ prompt: promptCorrecao(regras, id), tier: 'complex', maxTokens: 12000, progresso: n => { prog[id || 1] = n; mostrar(); } });
+      return IA.json({ prompt: promptCorrecao(regras, id), tier: 'complex', maxTokens: 7000, progresso: n => { prog[id || 1] = n; mostrar(); } });
     };
     if ((S.opcoes.metodo || 'dupla') === 'simples') {
       aplicarCorrecao(await corrigirUma(0), regras, null);
@@ -2337,6 +2391,7 @@ $('#btSalvar').addEventListener('click', async () => {
       const d = await r.json(); extra = d.ok ? ' e na planilha' : '';
     } catch { extra = ' (a planilha não respondeu)'; }
   }
+  if (S._loteLocalId && typeof llMarcar === 'function') llMarcar(S._loteLocalId, 'salva');
   if (S._loteOrigem && Lote.db && Lote.user) {
     Lote.db.collection('professores').doc(Lote.user.uid).collection('lotes').doc(S._loteOrigem.loteId)
       .collection('itens').doc(S._loteOrigem.itemId).update({ status: 'corrigida' }).catch(() => {});
@@ -2451,14 +2506,19 @@ $('#btCsv').addEventListener('click', () => {
 $('#chipMotor').addEventListener('click', () => {
   $$('input[name=modo]').forEach(i => i.checked = i.value === (IA.cfg.modo || 'auto'));
   $('#cfgUrl').value = IA.cfg.url || ''; $('#cfgToken').value = IA.cfg.token || ''; $('#cfgChave').value = IA.cfg.chave || ''; $('#cfgModelo').value = IA.cfg.modelo || 'claude-sonnet-5';
-  setStatus('#stCfg', IA.sample ? 'O Claude está disponível nesta página.' : 'O Claude não está disponível nesta página.');
+  $('#stClaude').textContent = IA.sample ? 'A conta Claude está disponível nesta página.' : 'A conta Claude não está disponível nesta página (normal fora do Claude).';
+  setStatus('#stCfg', ''); setStatus('#stCfg2', '');
   renderPainelTeste();
   $('#dlgMotor').showModal();
 });
-$('#btSalvarCfg').addEventListener('click', () => {
+function salvarConfigMotor() {
   IA.cfg = { modo: ($('input[name=modo]:checked') || {}).value || 'auto', url: $('#cfgUrl').value.trim(), token: $('#cfgToken').value.trim(), chave: $('#cfgChave').value.trim(), modelo: $('#cfgModelo').value.trim() || 'claude-sonnet-5' };
-  LS.set('cfg', IA.cfg); atualizarChip(); setStatus('#stCfg', 'Salvo. Motor atual: ' + IA.nomeModo() + '.');
-});
+  LS.set('cfg', IA.cfg); atualizarChip();
+  const msg = 'Salvo. Motor atual: ' + IA.nomeModo() + '.' + (IA.cfg.chave && !IA.licenciado && Lote.cfg ? ' Sua chave só passa a valer depois que a licença estiver ativa.' : '');
+  setStatus('#stCfg', msg); setStatus('#stCfg2', msg);
+}
+$('#btSalvarCfg').addEventListener('click', salvarConfigMotor);
+$('#btSalvarCfg2').addEventListener('click', salvarConfigMotor);
 
 /* =========================================================
    Nova correção, rascunho e início
@@ -2586,6 +2646,11 @@ const DEMO = {
    testes grátis/licença e sem o lote na nuvem (cada pessoa pode colar a
    própria configuração manualmente, no botão do motor de IA).
    ========================================================= */
+/* Interruptor do ANTIGO "Lote (nuvem)" (lê as fotos no servidor com a chave do DONO e vende créditos).
+   Fica false: o lote oficial agora é o "Lote da turma", que roda no navegador com a chave do CLIENTE. */
+const RECURSO_LOTE = false;
+if (!RECURSO_LOTE) { const b = document.querySelector('#btLote'); if (b) b.hidden = true; }
+
 const DEFAULT_FB_CONFIG = {
   apiKey: "AIzaSyBO40K1tqcUov4Xp7n7aAHnaBKRe_6xaFU",
   authDomain: "correda-f9a9f.firebaseapp.com",
@@ -2635,14 +2700,19 @@ function renderLotePainel() {
 }
 function renderPainelTeste() {
   const pt = $('#painelTeste'); if (!pt) return;
-  const configurado = Lote.garantirApp();
-  pt.hidden = !configurado;
-  if (!configurado) return;
+  if (!Lote.cfg) { pt.hidden = true; return; }           // versão sem servidor de login: a caixa nem existe
+  pt.hidden = false;
+  const st = $('#testeStatus'); st.style.color = '';
+  if (!Lote.garantirApp()) {                              // servidor de login não carregou: avisa em vez de sumir
+    $('#testeAuth').hidden = true; $('#testeConta').hidden = true; $('#acoesLicenca').hidden = true;
+    st.textContent = 'Não consegui conectar ao servidor de login. Verifique a internet, feche e abra o app de novo (ou recarregue a página).'; st.style.color = 'var(--pen)';
+    return;
+  }
   $('#testeAuth').hidden = !!Lote.user;
   $('#testeConta').hidden = !Lote.user;
   if (Lote.user) {
     $('#testeStatus').textContent = IA.licenciado
-      ? `Licença ativa, conectado como ${Lote.user.email}. Os testes grátis não valem mais a pena: configure sua própria chave abaixo para continuar.`
+      ? `Licença ativa, conectado como ${Lote.user.email}. Para continuar corrigindo, cole sua chave da API no campo 2, logo abaixo, e toque em Salvar chave.`
       : `Conectado como ${Lote.user.email}. Testes grátis usados: ${IA.testesUsados} de 2.`;
     $('#acoesLicenca').hidden = !!IA.licenciado;
   } else {
@@ -2757,7 +2827,9 @@ async function dividirFotoLote(file) {
   const [parte1, parte2] = await Promise.all([recorte(0, Math.min(H, corte + sobra)), recorte(Math.max(0, corte - sobra), H)]);
   const full = document.createElement('canvas'); full.width = W; full.height = H;
   full.getContext('2d').drawImage(img, 0, 0, W, H);
-  return { parte1, parte2, preview: full.toDataURL('image/jpeg', 0.6) };
+  const mini = document.createElement('canvas'); mini.width = 150; mini.height = Math.max(1, Math.round(H * 150 / W));
+  mini.getContext('2d').drawImage(img, 0, 0, mini.width, mini.height);
+  return { parte1, parte2, w: W, h: H, preview: full.toDataURL('image/jpeg', 0.6), mini: mini.toDataURL('image/jpeg', 0.55) };
 }
 
 $('#btEnviarLote').addEventListener('click', async () => {
@@ -2894,6 +2966,149 @@ function carregarItemLote(it, loteInfo, loteId, itemId) {
   S._loteOrigem = { loteId, itemId };
   $('#dlgLote').close(); preencherCampos(); renderLinhasEd(); atualizarRegras(); irPara(3);
   toast('Transcrição carregada deste lote. Confira com a foto e siga para a correção.');
+}
+
+
+/* =========================================================
+   LOTE DA TURMA (no navegador, com a chave do próprio cliente)
+   As fotos nunca saem do aparelho. A leitura e a correção usam o mesmo
+   motor de IA do app, até 2 redações ao mesmo tempo. O progresso fica
+   guardado (sem as fotos grandes) para não perder o que já foi pago.
+   ========================================================= */
+let llItens = (LS.get('loteLocal', []) || []).map(it => {
+  const x = { ...it, preview: null, blobs: null };
+  if (x.status === 'lendo') x.status = 'erro', x.erro = 'Interrompido: a página foi fechada. Envie esta foto de novo.';
+  if (x.status === 'corrigindo') x.status = 'lida';
+  return x;
+});
+let llRodando = false, llParar = false;
+const LL_ROTULO = { fila: 'Na fila', lendo: 'Lendo a foto...', conferir: 'Conferir a leitura', lida: 'Lida', corrigindo: 'Corrigindo...', pronta: 'Pronta para revisar', salva: 'Salva no histórico', erro: 'Erro' };
+function llSalvar() {
+  const leve = llItens.map(({ preview, blobs, ...resto }) => resto).slice(-80);
+  if (!LS.set('loteLocal', leve)) { LS.set('loteLocal', leve.slice(-30)); }
+}
+function llMarcar(id, status) { const it = llItens.find(x => x.id === id); if (it) { it.status = status; llSalvar(); llRender(); } }
+function llMotor() {
+  const m = IA.modo();
+  if (m === 'demo') return { ok: false, msg: 'O modo demonstração não processa fotos de verdade. Salve sua chave da API no botão do motor de IA.' };
+  if (m === 'teste') return { ok: false, msg: 'O lote usa muitas chamadas e não cabe nos 2 testes grátis. Compre a licença e salve sua chave da API no botão do motor de IA.' };
+  if (m === 'direto' && Lote.cfg && !IA.licenciado) return { ok: false, msg: 'Para usar sua chave é preciso ter a licença ativa. Abra o botão do motor de IA.' };
+  return { ok: true };
+}
+function llPrecisaTrabalho(it) {
+  if (it.status === 'fila') return !!it.blobs;
+  if (it.status === 'lida' && $('#llAuto').checked && it.transcricao) return true;
+  return false;
+}
+function llRender() {
+  const lista = $('#llLista'); if (!lista) return;
+  const pend = llItens.filter(llPrecisaTrabalho).length;
+  const tot = llItens.length;
+  lista.innerHTML = tot ? llItens.map(it => {
+    const cls = it.status === 'pronta' || it.status === 'salva' ? 'ok' : (it.status === 'conferir' ? 'aviso' : (it.status === 'erro' ? 'erro' : ''));
+    const botoes = [];
+    if (it.status === 'conferir' || it.status === 'lida') botoes.push(`<button class="btn sec min" type="button" data-ll="ler" data-id="${it.id}">Conferir leitura</button>`);
+    if (it.status === 'pronta' || it.status === 'salva') botoes.push(`<button class="btn min" type="button" data-ll="rev" data-id="${it.id}">Revisar</button>`, `<button class="btn sec min" type="button" data-ll="ler" data-id="${it.id}">Ver leitura</button>`);
+    if (it.status === 'erro' && it.blobs) botoes.push(`<button class="btn sec min" type="button" data-ll="again" data-id="${it.id}">Tentar de novo</button>`);
+    return `<div class="ll-item"><img src="${it.mini || ''}" alt=""><input class="cod" data-llcod="${it.id}" value="${esc(it.codigo)}" aria-label="Código do aluno"><span class="ll-badge ${cls}">${LL_ROTULO[it.status] || it.status}</span>
+      <div class="linha2">${it.erro && it.status === 'erro' ? `<span class="miudo" style="color:var(--pen)">${esc(it.erro)}</span>` : (it.status === 'conferir' ? '<span class="miudo">Há palavras que a IA não conseguiu ler. Confira com a foto antes de corrigir.</span>' : '')}<span class="acoes-item">${botoes.join('')}</span></div></div>`;
+  }).join('') : '<p class="miudo">Nenhuma foto no lote ainda.</p>';
+  const feitas = llItens.filter(x => ['pronta', 'salva'].includes(x.status)).length;
+  $('#btLLProcessar').textContent = pend ? `Processar ${pend} redação(ões) (≈ R$ ${(pend * 0.4).toFixed(2).replace('.', ',')} na sua chave)` : 'Processar';
+  $('#btLLProcessar').disabled = llRodando || !pend;
+  $('#btLLParar').hidden = !llRodando;
+  if (!llRodando && tot) setStatus('#llStatus', `${feitas} de ${tot} pronta(s) para revisar.`);
+}
+$('#btLoteLocal').addEventListener('click', () => {
+  $('#llTurma').value = $('#llTurma').value || S.aluno.turma || '';
+  $('#llTema').value = $('#llTema').value || S.proposta.tema || '';
+  llRender(); $('#dlgLoteLocal').showModal();
+});
+$('#llFotos').addEventListener('change', async e => {
+  const arqs = [...e.target.files]; e.target.value = ''; if (!arqs.length) return;
+  const pref = $('#llPrefixo').value.trim().replace(/\s+/g, '').toUpperCase();
+  const turma = $('#llTurma').value.trim(), tema = $('#llTema').value.trim() || S.proposta.tema || '';
+  for (let i = 0; i < arqs.length; i++) {
+    setStatus('#llStatus', `Preparando foto ${i + 1} de ${arqs.length}...`);
+    try {
+      const f = await dividirFotoLote(arqs[i]);
+      const n = llItens.length + 1;
+      llItens.push({ id: 'l' + Date.now().toString(36) + i, codigo: `${pref || 'foto'}-${pad2(n)}`, turma, tema, status: 'fila', w: f.w, h: f.h, mini: f.mini, preview: f.preview, blobs: { parte1: f.parte1, parte2: f.parte2 }, criadoEm: Date.now() });
+    } catch { toast(`Não consegui abrir a foto ${arqs[i].name}.`); }
+  }
+  llSalvar(); llRender();
+});
+$('#llLista').addEventListener('input', e => {
+  const id = e.target.dataset.llcod; if (!id) return;
+  const it = llItens.find(x => x.id === id); if (it) { it.codigo = e.target.value.trim(); llSalvar(); }
+});
+$('#llLista').addEventListener('click', e => {
+  const b = e.target.closest('[data-ll]'); if (!b) return;
+  const it = llItens.find(x => x.id === b.dataset.id); if (!it) return;
+  if (b.dataset.ll === 'again') { it.status = 'fila'; it.erro = ''; llSalvar(); llRender(); }
+  else if (b.dataset.ll === 'rev') llAbrir(it, 'revisar');
+  else llAbrir(it, 'ler');
+});
+$('#llAuto').addEventListener('change', llRender);
+$('#btLLLimpar').addEventListener('click', () => {
+  if (llRodando) { toast('Pare o processamento antes de limpar.'); return; }
+  llItens = []; LS.del('loteLocal'); llRender(); setStatus('#llStatus', '');
+});
+$('#btLLParar').addEventListener('click', () => { llParar = true; IA.parar(); setStatus('#llStatus', 'Parando...'); });
+
+async function llTrabalhar(it) {
+  const tema = it.tema || S.proposta.tema || '';
+  try {
+    if (!it.transcricao) {
+      it.status = 'lendo'; it.erro = ''; llRender();
+      if (!it.blobs) throw new Error('A foto não está mais neste aparelho. Envie de novo.');
+      const r = await IA.json({ prompt: promptLeitura(), imagens: [it.blobs.parte1, it.blobs.parte2], tier: 'default', maxTokens: 5000 });
+      it.transcricao = r; it.blobs = null; it.status = 'lida';
+      llSalvar();
+      if ((r.linhas || []).some(l => /\[\?/.test(l.texto || ''))) { it.status = 'conferir'; return; }
+    }
+    if ($('#llAuto').checked && it.status === 'lida') {
+      it.status = 'corrigindo'; llRender();
+      it.resultado = await IA.json({ prompt: prepararPromptCorrecaoOffline(it.transcricao, tema, S.proposta.instrucoes), tier: 'complex', maxTokens: 7000 });
+      it.status = 'pronta';
+    }
+  } catch (e) {
+    if (llParar) { it.status = it.transcricao ? 'lida' : 'fila'; return; }
+    it.status = 'erro'; it.erro = msgErro(e);
+  } finally { llSalvar(); llRender(); }
+}
+$('#btLLProcessar').addEventListener('click', async () => {
+  const m = llMotor(); if (!m.ok) { setStatus('#llStatus', m.msg, true); return; }
+  const fila = llItens.filter(llPrecisaTrabalho);
+  if (!fila.length) return;
+  llRodando = true; llParar = false; llRender();
+  setStatus('#llStatus', `Processando ${fila.length} redação(ões)... pode deixar o app aberto.`);
+  let i = 0;
+  const trabalhador = async () => { while (!llParar) { const it = fila[i++]; if (!it) return; await llTrabalhar(it); } };
+  const paralelo = IA.modo() === 'claude' ? 1 : 2;
+  await Promise.all(Array.from({ length: paralelo }, trabalhador));
+  llRodando = false; llRender();
+  const erros = llItens.filter(x => x.status === 'erro').length, conf = llItens.filter(x => x.status === 'conferir').length;
+  toast(llParar ? 'Processamento parado.' : `Lote concluído${conf ? `: ${conf} para conferir a leitura` : ''}${erros ? `, ${erros} com erro` : ''}.`);
+});
+function llAbrir(it, destino) {
+  const fazer = () => {
+    const proposta = S.proposta;
+    S = estadoInicial(); S.proposta = proposta;
+    const t = it.transcricao || {}, novas = linhasVazias();
+    (t.linhas || []).forEach(l => { const n = Number(l.n); if (n >= 1 && n <= 30) novas[n - 1] = { t: String(l.texto || ''), p: !!l.paragrafo }; });
+    S.linhas = novas; S.titulo = t.titulo || ''; S.obsLeitura = t.observacoes || '';
+    S.aluno.codigo = it.codigo || ''; S.aluno.turma = it.turma || '';
+    if (it.tema && !S.proposta.tema) S.proposta.tema = it.tema;
+    const grande = it.preview || null;
+    if (grande) { const w = it.w || 1, h = it.h || 1; S.foto = { original: grande, processada: grande, w, h, cantos: [[0, 0], [w, 0], [w, h], [0, h]], exemplo: false }; }
+    S._loteLocalId = it.id;
+    $('#dlgLoteLocal').close(); preencherCampos(); renderLinhasEd();
+    if (destino === 'revisar' && it.resultado) { aplicarCorrecao(it.resultado, analisarRegras(), null); irPara(5); toast('Correção carregada. Revise e gere a devolutiva.'); }
+    else { atualizarRegras(); irPara(3); toast(grande ? 'Confira a leitura com a foto e siga para a correção.' : 'Confira a leitura. A foto grande não está mais no aparelho (só a miniatura).'); }
+  };
+  if (S.notas || S.linhas.some(l => l.t)) toast('A correção atual em andamento será substituída.', { rotulo: 'Abrir mesmo assim', fn: fazer });
+  else fazer();
 }
 
 /* marca a folha de exemplo para o modo demonstração */
