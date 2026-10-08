@@ -700,7 +700,15 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
     <div id="testeAuth"><div class="acoes" style="margin:0"><button class="btn" type="button" id="btLoginTeste">Entrar com Google</button></div></div>
     <div id="testeConta" class="acoes" style="margin:8px 0 0" hidden><button class="btn sec min" type="button" id="btTrocarConta">Trocar de conta</button><button class="btn sec min" type="button" id="btSairTeste">Sair</button></div>
     <div id="testeStatus" class="miudo" style="margin-top:6px"></div>
-    <div class="acoes" id="acoesLicenca" style="margin-top:8px" hidden><button class="btn" type="button" id="btComprarLicenca">Comprar licença</button><span class="status" id="stLic"></span></div>
+    <div class="acoes" id="acoesLicenca" style="margin-top:8px" hidden><button class="btn" type="button" id="btComprarLicenca">Comprar licença — R$ 59,90 no Pix</button><span class="status" id="stLic"></span></div>
+    <div id="boxPix" hidden style="margin-top:10px;padding:12px;border:1px dashed var(--line);border-radius:10px;text-align:center">
+      <div style="font-weight:700;margin-bottom:6px">Pague com Pix — R$ 59,90</div>
+      <img id="pixQr" alt="QR Code Pix" style="width:200px;height:200px;max-width:70vw;image-rendering:pixelated;background:#fff;padding:6px;border-radius:8px" hidden>
+      <p class="miudo" style="margin:8px 0 4px">Abra o app do seu banco, escolha <b>Pix &gt; Ler QR Code</b> (ou use o "copia e cola").</p>
+      <input id="pixCopia" readonly style="width:100%;font-size:11px;text-align:center" onclick="this.select()">
+      <div class="acoes" style="justify-content:center;margin-top:8px"><button class="btn sec min" type="button" id="btCopiarPix">Copiar código Pix</button><button class="btn sec min" type="button" id="btJaPaguei">Já paguei</button></div>
+      <div class="miudo" id="pixInfo" style="margin-top:6px"></div>
+    </div>
   </div>
 
   <div style="margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:10px">
@@ -862,7 +870,7 @@ dialog::backdrop{background:rgba(10,15,30,.45)}
 <dialog id="dlgCreditos"><div class="dlg">
   <button class="btn sec min fecha" type="button" data-fecha>Fechar</button>
   <h2>Comprar créditos</h2>
-  <p class="ajuda">1 crédito = a leitura de 1 redação pelo lote na nuvem. Pagamento por Pix ou cartão, processado pelo Mercado Pago.</p>
+  <p class="ajuda">1 crédito = a leitura de 1 redação pelo lote na nuvem. Pagamento somente por Pix, processado pelo Mercado Pago.</p>
   <div class="opcoes-cor" id="listaPacotes">
     <label class="opcao"><input type="radio" name="pacote" value="p50" checked><div><b>50 créditos</b><span>R$ 19,90</span></div></label>
     <label class="opcao"><input type="radio" name="pacote" value="p150"><div><b>150 créditos</b><span>R$ 49,90</span></div></label>
@@ -2714,7 +2722,7 @@ function renderPainelTeste() {
     $('#testeStatus').textContent = IA.licenciado
       ? `Licença ativa, conectado como ${Lote.user.email}. Para continuar corrigindo, cole sua chave da API no campo 2, logo abaixo, e toque em Salvar chave.`
       : `Conectado como ${Lote.user.email}. Testes grátis usados: ${IA.testesUsados} de 2.`;
-    $('#acoesLicenca').hidden = !!IA.licenciado;
+    $('#acoesLicenca').hidden = !!IA.licenciado; if (IA.licenciado) { try { pixParar(); $('#boxPix').hidden = true; } catch {} }
   } else {
     $('#testeStatus').textContent = 'Entre para liberar 2 correções grátis, sem precisar de chave.';
     $('#acoesLicenca').hidden = true;
@@ -2759,17 +2767,45 @@ $$('input[name=modo]').forEach(i => i.addEventListener('change', () => {
     const pt = $('#painelTeste'); if (pt && !pt.hidden) { pt.scrollIntoView({ behavior: 'smooth', block: 'center' }); avisoLogin('Toque em "Entrar com Google" logo acima para liberar seus 2 testes grátis.', false); }
   }
 }));
+let pixTimer = null;
+function pixParar() { if (pixTimer) { clearInterval(pixTimer); pixTimer = null; } }
+async function pixConferir(manual) {
+  if (!Lote.functions || !Lote.user) return false;
+  try {
+    const r = (await Lote.functions.httpsCallable('consultarPixLicenca')({})).data || {};
+    if (r.pago) {
+      pixParar(); $('#boxPix').hidden = true;
+      setStatus('#stLic', 'Pagamento confirmado! Licença liberada.');
+      toast('Licença ativada. Obrigado!');
+      return true;
+    }
+    if (r.expirou) { pixParar(); $('#pixInfo').textContent = 'Este Pix expirou. Gere um novo.'; $('#btComprarLicenca').hidden = false; }
+    else if (manual) $('#pixInfo').textContent = 'Ainda não identificamos o pagamento. Pode levar alguns segundos.';
+  } catch (e) { if (manual) $('#pixInfo').textContent = 'Não consegui conferir agora: ' + (e.message || e); }
+  return false;
+}
 $('#btComprarLicenca').addEventListener('click', async () => {
   if (!Lote.functions || !Lote.user) return;
-  const bt = $('#btComprarLicenca'); bt.disabled = true; setStatus('#stLic', 'Gerando o link de pagamento...');
+  const bt = $('#btComprarLicenca'); bt.disabled = true; setStatus('#stLic', 'Gerando o Pix...');
   try {
-    const r = await Lote.functions.httpsCallable('criarPagamentoLicenca')({});
-    const aba = window.open(r.data.url, '_blank');
-    if (!aba) setStatus('#stLic', 'O navegador bloqueou a nova aba. Permita pop-ups para este site e tente de novo.', true);
-    else setStatus('#stLic', 'Abrimos o pagamento em outra aba. A licença ativa sozinha assim que for aprovado.');
-  } catch (e) { setStatus('#stLic', 'Não consegui iniciar o pagamento: ' + (e.message || e), true); }
+    const r = (await Lote.functions.httpsCallable('criarPixLicenca')({})).data || {};
+    if (r.jaLicenciado) { setStatus('#stLic', 'Sua licença já está ativa.'); return; }
+    $('#pixCopia').value = r.qrCode || '';
+    const img = $('#pixQr');
+    if (r.qrCodeBase64) { img.src = 'data:image/png;base64,' + r.qrCodeBase64; img.hidden = false; } else img.hidden = true;
+    $('#pixInfo').textContent = 'Válido por 30 minutos. A licença ativa sozinha assim que o Pix for pago.';
+    $('#boxPix').hidden = false; bt.hidden = true; setStatus('#stLic', '');
+    pixParar(); let n = 0;
+    pixTimer = setInterval(() => { if (++n > 450 || !$('#boxPix') || $('#boxPix').hidden) { pixParar(); return; } pixConferir(false); }, 4000);
+  } catch (e) { setStatus('#stLic', 'Não consegui gerar o Pix: ' + (e.message || e), true); }
   finally { bt.disabled = false; }
 });
+$('#btCopiarPix').addEventListener('click', async () => {
+  const v = $('#pixCopia').value;
+  try { await navigator.clipboard.writeText(v); $('#pixInfo').textContent = 'Código copiado! Cole no app do seu banco, em Pix > Pix Copia e Cola.'; }
+  catch { $('#pixCopia').select(); $('#pixInfo').textContent = 'Selecione o código e copie manualmente.'; }
+});
+$('#btJaPaguei').addEventListener('click', () => pixConferir(true));
 $('#btComprarCreditos').addEventListener('click', () => { setStatus('#stCred', ''); $('#dlgCreditos').showModal(); });
 $('#btIrPagar').addEventListener('click', async () => {
   if (!Lote.functions || !Lote.user) return;
